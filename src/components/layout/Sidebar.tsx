@@ -38,6 +38,11 @@ const navItems = [
     href: '/links',
     icon: '🔗',
   },
+  {
+    label: 'ゼミ報告生成',
+    href: '/report',
+    icon: '📄',
+  },
 ]
 
 export default function Sidebar() {

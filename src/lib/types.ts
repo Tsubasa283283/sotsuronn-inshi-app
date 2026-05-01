@@ -46,7 +46,13 @@ export interface Reference {
   title: string
   author: string
   year?: number
-  notes: string
+  journal?: string        // 掲載誌・出版社
+  notes: string           // メモ
+  background?: string     // 研究背景
+  researchQuestion?: string
+  answer?: string
+  utilization?: string    // 自分の研究への活用
+  includeInReport?: boolean
 }
 
 export interface TeacherComment {
@@ -69,6 +75,13 @@ export interface TimetableItem {
   done: boolean
 }
 
+export interface ReportDraft {
+  synthesis: string
+  ownRQ: string
+  nextTasks: string
+  questions: string
+}
+
 export interface Thesis {
   theme: string
   problemAwareness: string
@@ -79,6 +92,7 @@ export interface Thesis {
   nextActions: string[]
   drafts: Draft[]
   timetable: TimetableItem[]
+  reportDraft?: ReportDraft
 }
 
 export interface RequiredDocument {

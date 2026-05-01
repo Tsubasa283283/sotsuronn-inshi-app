@@ -22,6 +22,8 @@ export default function Modal({ isOpen, onClose, title, children, size = 'md' }:
   if (!isOpen) return null
 
   const sizeClass = size === 'sm' ? 'max-w-sm' : size === 'lg' ? 'max-w-2xl' : 'max-w-lg'
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sizeClassXl = (size as any) === 'xl' ? 'max-w-3xl' : sizeClass
 
   return (
     <div
@@ -30,7 +32,7 @@ export default function Modal({ isOpen, onClose, title, children, size = 'md' }:
     >
       <div className="absolute inset-0 bg-slate-900/50" />
       <div
-        className={`relative bg-white border border-slate-200 shadow-xl w-full mx-4 ${sizeClass}`}
+        className={`relative bg-white border border-slate-200 shadow-xl w-full mx-4 ${sizeClassXl}`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200 bg-slate-50">
@@ -42,7 +44,7 @@ export default function Modal({ isOpen, onClose, title, children, size = 'md' }:
             ×
           </button>
         </div>
-        <div className="p-5">{children}</div>
+        <div className="p-5 overflow-y-auto max-h-[80vh]">{children}</div>
       </div>
     </div>
   )

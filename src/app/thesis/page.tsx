@@ -24,20 +24,38 @@ export default function ThesisPage() {
   const [newAction, setNewAction] = useState('')
   const [timetableForm, setTimetableForm] = useState({ period: '', task: '' })
 
-  const [refForm, setRefForm] = useState({ title: '', author: '', year: '', notes: '' })
+  const [refForm, setRefForm] = useState({
+    title: '', author: '', year: '', journal: '', notes: '',
+    background: '', researchQuestion: '', answer: '', utilization: '',
+  })
   const [commentForm, setCommentForm] = useState({ content: '', date: new Date().toISOString().slice(0, 10) })
   const [draftForm, setDraftForm] = useState({ title: '', content: '' })
 
   // --- References ---
+  const emptyRefForm = {
+    title: '', author: '', year: '', journal: '', notes: '',
+    background: '', researchQuestion: '', answer: '', utilization: '',
+  }
+
   const openAddRefModal = () => {
     setEditingRef(null)
-    setRefForm({ title: '', author: '', year: '', notes: '' })
+    setRefForm(emptyRefForm)
     setShowRefModal(true)
   }
 
   const openEditRefModal = (r: Reference) => {
     setEditingRef(r)
-    setRefForm({ title: r.title, author: r.author ?? '', year: r.year ? String(r.year) : '', notes: r.notes ?? '' })
+    setRefForm({
+      title: r.title,
+      author: r.author ?? '',
+      year: r.year ? String(r.year) : '',
+      journal: r.journal ?? '',
+      notes: r.notes ?? '',
+      background: r.background ?? '',
+      researchQuestion: r.researchQuestion ?? '',
+      answer: r.answer ?? '',
+      utilization: r.utilization ?? '',
+    })
     setShowRefModal(true)
   }
 
@@ -47,7 +65,18 @@ export default function ThesisPage() {
       updateThesis({
         references: thesis.references.map((r) =>
           r.id === editingRef.id
-            ? { ...r, title: refForm.title, author: refForm.author, year: refForm.year ? parseInt(refForm.year) : undefined, notes: refForm.notes }
+            ? {
+                ...r,
+                title: refForm.title,
+                author: refForm.author,
+                year: refForm.year ? parseInt(refForm.year) : undefined,
+                journal: refForm.journal,
+                notes: refForm.notes,
+                background: refForm.background,
+                researchQuestion: refForm.researchQuestion,
+                answer: refForm.answer,
+                utilization: refForm.utilization,
+              }
             : r
         ),
       })
@@ -57,12 +86,25 @@ export default function ThesisPage() {
         title: refForm.title,
         author: refForm.author,
         year: refForm.year ? parseInt(refForm.year) : undefined,
+        journal: refForm.journal,
         notes: refForm.notes,
+        background: refForm.background,
+        researchQuestion: refForm.researchQuestion,
+        answer: refForm.answer,
+        utilization: refForm.utilization,
       }
       updateThesis({ references: [...thesis.references, ref] })
     }
-    setRefForm({ title: '', author: '', year: '', notes: '' })
+    setRefForm(emptyRefForm)
     setShowRefModal(false)
+  }
+
+  const toggleIncludeInReport = (id: string) => {
+    updateThesis({
+      references: thesis.references.map((r) =>
+        r.id === id ? { ...r, includeInReport: !r.includeInReport } : r
+      ),
+    })
   }
 
   const deleteReference = (id: string) => {
@@ -417,6 +459,7 @@ export default function ThesisPage() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-slate-200 bg-slate-50">
+                      <th className="px-3 py-2 text-center text-xs font-semibold text-amber-600" title="今週の報告に含める">報告</th>
                       <th className="px-4 py-2 text-left text-xs font-semibold text-slate-500">タイトル</th>
                       <th className="px-3 py-2 text-left text-xs font-semibold text-slate-500">著者</th>
                       <th className="px-3 py-2 text-left text-xs font-semibold text-slate-500">年</th>
@@ -426,6 +469,15 @@ export default function ThesisPage() {
                   <tbody>
                     {thesis.references.map((r) => (
                       <tr key={r.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50 group">
+                        <td className="px-3 py-2.5 text-center">
+                          <input
+                            type="checkbox"
+                            checked={r.includeInReport ?? false}
+                            onChange={() => toggleIncludeInReport(r.id)}
+                            title="今週の報告に含める"
+                            className="w-3.5 h-3.5 accent-amber-500"
+                          />
+                        </td>
                         <td className="px-4 py-2.5">
                           <p className="text-xs font-medium text-slate-700">{r.title}</p>
                           {r.notes && <p className="text-xs text-slate-400 mt-0.5">{r.notes}</p>}
@@ -546,47 +598,107 @@ export default function ThesisPage() {
       </div>
 
       {/* Reference modal */}
-      <Modal isOpen={showRefModal} onClose={() => setShowRefModal(false)} title={editingRef ? '文献を編集' : '文献を追加'}>
-        <div className="space-y-3">
+      <Modal isOpen={showRefModal} onClose={() => setShowRefModal(false)} title={editingRef ? '文献を編集' : '文献を追加'} size="lg">
+        <div className="space-y-4">
+          {/* 基本情報 */}
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1">タイトル *</label>
-            <input
-              type="text"
-              value={refForm.title}
-              onChange={(e) => setRefForm({ ...refForm, title: e.target.value })}
-              className="w-full border border-slate-200 px-3 py-1.5 text-sm focus:outline-none focus:border-amber-400"
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1">著者</label>
-              <input
-                type="text"
-                value={refForm.author}
-                onChange={(e) => setRefForm({ ...refForm, author: e.target.value })}
-                className="w-full border border-slate-200 px-3 py-1.5 text-sm focus:outline-none focus:border-amber-400"
-              />
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">基本情報</p>
+            <div className="space-y-2">
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">タイトル *</label>
+                <input
+                  type="text"
+                  value={refForm.title}
+                  onChange={(e) => setRefForm({ ...refForm, title: e.target.value })}
+                  className="w-full border border-slate-200 px-3 py-1.5 text-sm focus:outline-none focus:border-amber-400"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">著者</label>
+                  <input
+                    type="text"
+                    value={refForm.author}
+                    onChange={(e) => setRefForm({ ...refForm, author: e.target.value })}
+                    className="w-full border border-slate-200 px-3 py-1.5 text-sm focus:outline-none focus:border-amber-400"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">年</label>
+                  <input
+                    type="number"
+                    value={refForm.year}
+                    onChange={(e) => setRefForm({ ...refForm, year: e.target.value })}
+                    className="w-full border border-slate-200 px-3 py-1.5 text-sm focus:outline-none focus:border-amber-400"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">掲載誌・出版社</label>
+                <input
+                  type="text"
+                  value={refForm.journal}
+                  onChange={(e) => setRefForm({ ...refForm, journal: e.target.value })}
+                  placeholder="例：会計研究、東洋経済新報社"
+                  className="w-full border border-slate-200 px-3 py-1.5 text-sm focus:outline-none focus:border-amber-400"
+                />
+              </div>
             </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1">年</label>
-              <input
-                type="number"
-                value={refForm.year}
-                onChange={(e) => setRefForm({ ...refForm, year: e.target.value })}
-                className="w-full border border-slate-200 px-3 py-1.5 text-sm focus:outline-none focus:border-amber-400"
-              />
-            </div>
           </div>
+
+          {/* 内容分析 */}
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1">メモ</label>
-            <textarea
-              value={refForm.notes}
-              onChange={(e) => setRefForm({ ...refForm, notes: e.target.value })}
-              rows={2}
-              className="w-full border border-slate-200 px-3 py-1.5 text-sm focus:outline-none focus:border-amber-400 resize-none"
-            />
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">内容分析</p>
+            <div className="space-y-2">
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">研究背景</label>
+                <textarea
+                  value={refForm.background}
+                  onChange={(e) => setRefForm({ ...refForm, background: e.target.value })}
+                  rows={2}
+                  className="w-full border border-slate-200 px-3 py-1.5 text-sm focus:outline-none focus:border-amber-400 resize-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Research Question</label>
+                <textarea
+                  value={refForm.researchQuestion}
+                  onChange={(e) => setRefForm({ ...refForm, researchQuestion: e.target.value })}
+                  rows={2}
+                  className="w-full border border-slate-200 px-3 py-1.5 text-sm focus:outline-none focus:border-amber-400 resize-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Answer</label>
+                <textarea
+                  value={refForm.answer}
+                  onChange={(e) => setRefForm({ ...refForm, answer: e.target.value })}
+                  rows={2}
+                  className="w-full border border-slate-200 px-3 py-1.5 text-sm focus:outline-none focus:border-amber-400 resize-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">自分の研究への活用</label>
+                <textarea
+                  value={refForm.utilization}
+                  onChange={(e) => setRefForm({ ...refForm, utilization: e.target.value })}
+                  rows={2}
+                  className="w-full border border-slate-200 px-3 py-1.5 text-sm focus:outline-none focus:border-amber-400 resize-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">メモ</label>
+                <textarea
+                  value={refForm.notes}
+                  onChange={(e) => setRefForm({ ...refForm, notes: e.target.value })}
+                  rows={2}
+                  className="w-full border border-slate-200 px-3 py-1.5 text-sm focus:outline-none focus:border-amber-400 resize-none"
+                />
+              </div>
+            </div>
           </div>
-          <div className="flex justify-end gap-2 pt-2">
+
+          <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
             <button onClick={() => setShowRefModal(false)} className="px-4 py-1.5 text-sm text-slate-500 border border-slate-200 hover:bg-slate-50">
               キャンセル
             </button>
