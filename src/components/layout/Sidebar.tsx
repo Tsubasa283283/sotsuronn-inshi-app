@@ -33,6 +33,11 @@ const navItems = [
     href: '/materials',
     icon: '📚',
   },
+  {
+    label: '参考リンク集',
+    href: '/links',
+    icon: '🔗',
+  },
 ]
 
 export default function Sidebar() {
