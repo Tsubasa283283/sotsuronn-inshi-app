@@ -24,7 +24,9 @@ export default function SchoolPageContent({ schoolId }: Props) {
   const school = state.schools[schoolId]
 
   const [showTaskModal, setShowTaskModal] = useState(false)
+  const [editingTask, setEditingTask] = useState<Task | null>(null)
   const [showSubjectModal, setShowSubjectModal] = useState(false)
+  const [editingSubjectIndex, setEditingSubjectIndex] = useState<number | null>(null)
   const [newSubject, setNewSubject] = useState('')
   const [taskForm, setTaskForm] = useState({
     title: '',
@@ -32,18 +34,40 @@ export default function SchoolPageContent({ schoolId }: Props) {
     priority: 'medium' as Priority,
   })
 
-  const addTask = () => {
+  const openAddModal = () => {
+    setEditingTask(null)
+    setTaskForm({ title: '', deadline: '', priority: 'medium' })
+    setShowTaskModal(true)
+  }
+
+  const openEditModal = (task: Task) => {
+    setEditingTask(task)
+    setTaskForm({ title: task.title, deadline: task.deadline ?? '', priority: task.priority })
+    setShowTaskModal(true)
+  }
+
+  const saveTask = () => {
     if (!taskForm.title.trim()) return
-    const task: Task = {
-      id: generateId(),
-      title: taskForm.title,
-      category: schoolId,
-      deadline: taskForm.deadline || undefined,
-      priority: taskForm.priority,
-      completed: false,
-      createdAt: new Date().toISOString(),
+    if (editingTask) {
+      updateSchool(schoolId, {
+        tasks: school.tasks.map((t) =>
+          t.id === editingTask.id
+            ? { ...t, title: taskForm.title, deadline: taskForm.deadline || undefined, priority: taskForm.priority }
+            : t
+        ),
+      })
+    } else {
+      const task: Task = {
+        id: generateId(),
+        title: taskForm.title,
+        category: schoolId,
+        deadline: taskForm.deadline || undefined,
+        priority: taskForm.priority,
+        completed: false,
+        createdAt: new Date().toISOString(),
+      }
+      updateSchool(schoolId, { tasks: [...school.tasks, task] })
     }
-    updateSchool(schoolId, { tasks: [...school.tasks, task] })
     setTaskForm({ title: '', deadline: '', priority: 'medium' })
     setShowTaskModal(false)
   }
@@ -66,9 +90,27 @@ export default function SchoolPageContent({ schoolId }: Props) {
     })
   }
 
-  const addSubject = () => {
+  const openAddSubjectModal = () => {
+    setEditingSubjectIndex(null)
+    setNewSubject('')
+    setShowSubjectModal(true)
+  }
+
+  const openEditSubjectModal = (i: number) => {
+    setEditingSubjectIndex(i)
+    setNewSubject(school.examSubjects[i])
+    setShowSubjectModal(true)
+  }
+
+  const saveSubject = () => {
     if (!newSubject.trim()) return
-    updateSchool(schoolId, { examSubjects: [...school.examSubjects, newSubject.trim()] })
+    if (editingSubjectIndex !== null) {
+      const updated = [...school.examSubjects]
+      updated[editingSubjectIndex] = newSubject.trim()
+      updateSchool(schoolId, { examSubjects: updated })
+    } else {
+      updateSchool(schoolId, { examSubjects: [...school.examSubjects, newSubject.trim()] })
+    }
     setNewSubject('')
     setShowSubjectModal(false)
   }
@@ -152,7 +194,7 @@ export default function SchoolPageContent({ schoolId }: Props) {
               accent
               action={
                 <button
-                  onClick={() => setShowSubjectModal(true)}
+                  onClick={openAddSubjectModal}
                   className="px-2.5 py-1 bg-slate-800 text-white text-xs hover:bg-slate-700 transition-colors"
                 >
                   + 追加
@@ -168,6 +210,12 @@ export default function SchoolPageContent({ schoolId }: Props) {
                     <li key={i} className="flex items-center gap-2 group">
                       <span className="w-1.5 h-1.5 bg-slate-400 rounded-full flex-shrink-0" />
                       <span className="text-sm text-slate-700 flex-1">{s}</span>
+                      <button
+                        onClick={() => openEditSubjectModal(i)}
+                        className="text-slate-300 hover:text-slate-600 text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        編集
+                      </button>
                       <button
                         onClick={() => removeSubject(i)}
                         className="text-slate-300 hover:text-red-500 text-xs opacity-0 group-hover:opacity-100 transition-opacity"
@@ -219,7 +267,7 @@ export default function SchoolPageContent({ schoolId }: Props) {
               accent
               action={
                 <button
-                  onClick={() => setShowTaskModal(true)}
+                  onClick={openAddModal}
                   className="px-2.5 py-1 bg-slate-800 text-white text-xs hover:bg-slate-700 transition-colors"
                 >
                   + タスク
@@ -231,7 +279,7 @@ export default function SchoolPageContent({ schoolId }: Props) {
                 <p className="text-sm text-slate-400 italic p-5">タスクなし</p>
               )}
               {pending.map((t) => (
-                <TaskRow key={t.id} task={t} onToggle={toggleTask} onDelete={deleteTask} />
+                <TaskRow key={t.id} task={t} onToggle={toggleTask} onDelete={deleteTask} onEdit={openEditModal} />
               ))}
               {done.length > 0 && (
                 <>
@@ -239,7 +287,7 @@ export default function SchoolPageContent({ schoolId }: Props) {
                     <span className="text-xs font-semibold text-slate-400 tracking-wide uppercase">完了済み</span>
                   </div>
                   {done.map((t) => (
-                    <TaskRow key={t.id} task={t} onToggle={toggleTask} onDelete={deleteTask} />
+                    <TaskRow key={t.id} task={t} onToggle={toggleTask} onDelete={deleteTask} onEdit={openEditModal} />
                   ))}
                 </>
               )}
@@ -249,7 +297,7 @@ export default function SchoolPageContent({ schoolId }: Props) {
       </div>
 
       {/* Task modal */}
-      <Modal isOpen={showTaskModal} onClose={() => setShowTaskModal(false)} title="タスクを追加">
+      <Modal isOpen={showTaskModal} onClose={() => setShowTaskModal(false)} title={editingTask ? 'タスクを編集' : 'タスクを追加'}>
         <div className="space-y-3">
           <div>
             <label className="block text-xs font-semibold text-slate-600 mb-1">タスク名 *</label>
@@ -257,7 +305,7 @@ export default function SchoolPageContent({ schoolId }: Props) {
               type="text"
               value={taskForm.title}
               onChange={(e) => setTaskForm({ ...taskForm, title: e.target.value })}
-              onKeyDown={(e) => { if (e.key === 'Enter') addTask() }}
+              onKeyDown={(e) => { if (e.key === 'Enter') saveTask() }}
               className="w-full border border-slate-200 px-3 py-1.5 text-sm focus:outline-none focus:border-amber-400"
             />
           </div>
@@ -288,21 +336,21 @@ export default function SchoolPageContent({ schoolId }: Props) {
             <button onClick={() => setShowTaskModal(false)} className="px-4 py-1.5 text-sm text-slate-500 border border-slate-200 hover:bg-slate-50">
               キャンセル
             </button>
-            <button onClick={addTask} className="px-4 py-1.5 text-sm bg-slate-800 text-white hover:bg-slate-700">
-              追加
+            <button onClick={saveTask} className="px-4 py-1.5 text-sm bg-slate-800 text-white hover:bg-slate-700">
+              {editingTask ? '保存' : '追加'}
             </button>
           </div>
         </div>
       </Modal>
 
       {/* Subject modal */}
-      <Modal isOpen={showSubjectModal} onClose={() => setShowSubjectModal(false)} title="試験科目を追加" size="sm">
+      <Modal isOpen={showSubjectModal} onClose={() => setShowSubjectModal(false)} title={editingSubjectIndex !== null ? '試験科目を編集' : '試験科目を追加'} size="sm">
         <div className="space-y-3">
           <input
             type="text"
             value={newSubject}
             onChange={(e) => setNewSubject(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') addSubject() }}
+            onKeyDown={(e) => { if (e.key === 'Enter') saveSubject() }}
             placeholder="例：研究計画書審査、口述試験"
             className="w-full border border-slate-200 px-3 py-1.5 text-sm focus:outline-none focus:border-amber-400"
           />
@@ -310,8 +358,8 @@ export default function SchoolPageContent({ schoolId }: Props) {
             <button onClick={() => setShowSubjectModal(false)} className="px-4 py-1.5 text-sm text-slate-500 border border-slate-200 hover:bg-slate-50">
               キャンセル
             </button>
-            <button onClick={addSubject} className="px-4 py-1.5 text-sm bg-slate-800 text-white hover:bg-slate-700">
-              追加
+            <button onClick={saveSubject} className="px-4 py-1.5 text-sm bg-slate-800 text-white hover:bg-slate-700">
+              {editingSubjectIndex !== null ? '保存' : '追加'}
             </button>
           </div>
         </div>
@@ -324,10 +372,12 @@ function TaskRow({
   task,
   onToggle,
   onDelete,
+  onEdit,
 }: {
   task: Task
   onToggle: (id: string) => void
   onDelete: (id: string) => void
+  onEdit: (task: Task) => void
 }) {
   return (
     <div className={`flex items-center gap-3 px-5 py-3 border-b border-slate-100 last:border-0 group hover:bg-slate-50 ${task.completed ? 'opacity-50' : ''}`}>
@@ -344,6 +394,12 @@ function TaskRow({
         {task.deadline && <p className="text-xs text-slate-400">{task.deadline}</p>}
       </div>
       <Badge className={PRIORITY_COLORS[task.priority]}>{PRIORITY_LABELS[task.priority]}</Badge>
+      <button
+        onClick={() => onEdit(task)}
+        className="text-slate-300 hover:text-slate-600 text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+      >
+        編集
+      </button>
       <button
         onClick={() => onDelete(task.id)}
         className="text-slate-300 hover:text-red-500 text-xs opacity-0 group-hover:opacity-100 transition-opacity"

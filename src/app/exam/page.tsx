@@ -16,24 +16,47 @@ export default function ExamPage() {
   const { examPrep, schools } = state
 
   const [showTaskModal, setShowTaskModal] = useState(false)
+  const [editingTask, setEditingTask] = useState<Task | null>(null)
   const [taskForm, setTaskForm] = useState({
     title: '',
     deadline: '',
     priority: 'medium' as Priority,
   })
 
-  const addTask = () => {
+  const openAddModal = () => {
+    setEditingTask(null)
+    setTaskForm({ title: '', deadline: '', priority: 'medium' })
+    setShowTaskModal(true)
+  }
+
+  const openEditModal = (task: Task) => {
+    setEditingTask(task)
+    setTaskForm({ title: task.title, deadline: task.deadline ?? '', priority: task.priority })
+    setShowTaskModal(true)
+  }
+
+  const saveTask = () => {
     if (!taskForm.title.trim()) return
-    const task: Task = {
-      id: generateId(),
-      title: taskForm.title,
-      category: 'exam',
-      deadline: taskForm.deadline || undefined,
-      priority: taskForm.priority,
-      completed: false,
-      createdAt: new Date().toISOString(),
+    if (editingTask) {
+      updateExamPrep({
+        tasks: examPrep.tasks.map((t) =>
+          t.id === editingTask.id
+            ? { ...t, title: taskForm.title, deadline: taskForm.deadline || undefined, priority: taskForm.priority }
+            : t
+        ),
+      })
+    } else {
+      const task: Task = {
+        id: generateId(),
+        title: taskForm.title,
+        category: 'exam',
+        deadline: taskForm.deadline || undefined,
+        priority: taskForm.priority,
+        completed: false,
+        createdAt: new Date().toISOString(),
+      }
+      updateExamPrep({ tasks: [...examPrep.tasks, task] })
     }
-    updateExamPrep({ tasks: [...examPrep.tasks, task] })
     setTaskForm({ title: '', deadline: '', priority: 'medium' })
     setShowTaskModal(false)
   }
@@ -140,7 +163,7 @@ export default function ExamPage() {
               accent
               action={
                 <button
-                  onClick={() => setShowTaskModal(true)}
+                  onClick={openAddModal}
                   className="px-2.5 py-1 bg-slate-800 text-white text-xs hover:bg-slate-700 transition-colors"
                 >
                   + タスク追加
@@ -153,7 +176,7 @@ export default function ExamPage() {
               )}
               {/* Pending tasks */}
               {pending.map((t) => (
-                <TaskRow key={t.id} task={t} onToggle={toggleTask} onDelete={deleteTask} />
+                <TaskRow key={t.id} task={t} onToggle={toggleTask} onDelete={deleteTask} onEdit={openEditModal} />
               ))}
               {/* Done section */}
               {done.length > 0 && (
@@ -162,7 +185,7 @@ export default function ExamPage() {
                     <span className="text-xs font-semibold text-slate-400 tracking-wide uppercase">完了済み</span>
                   </div>
                   {done.map((t) => (
-                    <TaskRow key={t.id} task={t} onToggle={toggleTask} onDelete={deleteTask} />
+                    <TaskRow key={t.id} task={t} onToggle={toggleTask} onDelete={deleteTask} onEdit={openEditModal} />
                   ))}
                 </>
               )}
@@ -172,7 +195,7 @@ export default function ExamPage() {
       </div>
 
       {/* Task modal */}
-      <Modal isOpen={showTaskModal} onClose={() => setShowTaskModal(false)} title="タスクを追加">
+      <Modal isOpen={showTaskModal} onClose={() => setShowTaskModal(false)} title={editingTask ? 'タスクを編集' : 'タスクを追加'}>
         <div className="space-y-3">
           <div>
             <label className="block text-xs font-semibold text-slate-600 mb-1">タスク名 *</label>
@@ -180,7 +203,7 @@ export default function ExamPage() {
               type="text"
               value={taskForm.title}
               onChange={(e) => setTaskForm({ ...taskForm, title: e.target.value })}
-              onKeyDown={(e) => { if (e.key === 'Enter') addTask() }}
+              onKeyDown={(e) => { if (e.key === 'Enter') saveTask() }}
               className="w-full border border-slate-200 px-3 py-1.5 text-sm focus:outline-none focus:border-amber-400"
             />
           </div>
@@ -215,10 +238,10 @@ export default function ExamPage() {
               キャンセル
             </button>
             <button
-              onClick={addTask}
+              onClick={saveTask}
               className="px-4 py-1.5 text-sm bg-slate-800 text-white hover:bg-slate-700"
             >
-              追加
+              {editingTask ? '保存' : '追加'}
             </button>
           </div>
         </div>
@@ -231,10 +254,12 @@ function TaskRow({
   task,
   onToggle,
   onDelete,
+  onEdit,
 }: {
   task: Task
   onToggle: (id: string) => void
   onDelete: (id: string) => void
+  onEdit: (task: Task) => void
 }) {
   return (
     <div className={`flex items-center gap-3 px-5 py-3 border-b border-slate-100 last:border-0 group hover:bg-slate-50 ${task.completed ? 'opacity-50' : ''}`}>
@@ -253,6 +278,12 @@ function TaskRow({
         )}
       </div>
       <Badge className={PRIORITY_COLORS[task.priority]}>{PRIORITY_LABELS[task.priority]}</Badge>
+      <button
+        onClick={() => onEdit(task)}
+        className="text-slate-300 hover:text-slate-600 text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+      >
+        編集
+      </button>
       <button
         onClick={() => onDelete(task.id)}
         className="text-slate-300 hover:text-red-500 text-xs opacity-0 group-hover:opacity-100 transition-opacity"
