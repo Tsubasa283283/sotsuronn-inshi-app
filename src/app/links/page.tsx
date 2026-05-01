@@ -88,7 +88,7 @@ const LINK_GROUPS = [
       },
       {
         name: '明治大学大学院',
-        url: 'https://www.meiji.ac.jp/grad/',
+        url: 'https://www.meiji.ac.jp/macs/',
         description: '入試情報・研究科紹介',
         tag: '志望校',
         tagColor: 'bg-indigo-100 text-indigo-700',
