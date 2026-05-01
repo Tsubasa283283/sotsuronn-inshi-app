@@ -13,9 +13,14 @@ export default function ThesisPage() {
   const { thesis } = state
 
   const [showRefModal, setShowRefModal] = useState(false)
+  const [editingRef, setEditingRef] = useState<Reference | null>(null)
   const [showCommentModal, setShowCommentModal] = useState(false)
+  const [editingComment, setEditingComment] = useState<TeacherComment | null>(null)
   const [showDraftModal, setShowDraftModal] = useState(false)
   const [showTimetableModal, setShowTimetableModal] = useState(false)
+  const [editingTimetable, setEditingTimetable] = useState<TimetableItem | null>(null)
+  const [editingActionIndex, setEditingActionIndex] = useState<number | null>(null)
+  const [editingActionValue, setEditingActionValue] = useState('')
   const [newAction, setNewAction] = useState('')
   const [timetableForm, setTimetableForm] = useState({ period: '', task: '' })
 
@@ -23,16 +28,39 @@ export default function ThesisPage() {
   const [commentForm, setCommentForm] = useState({ content: '', date: new Date().toISOString().slice(0, 10) })
   const [draftForm, setDraftForm] = useState({ title: '', content: '' })
 
-  const addReference = () => {
+  // --- References ---
+  const openAddRefModal = () => {
+    setEditingRef(null)
+    setRefForm({ title: '', author: '', year: '', notes: '' })
+    setShowRefModal(true)
+  }
+
+  const openEditRefModal = (r: Reference) => {
+    setEditingRef(r)
+    setRefForm({ title: r.title, author: r.author ?? '', year: r.year ? String(r.year) : '', notes: r.notes ?? '' })
+    setShowRefModal(true)
+  }
+
+  const saveReference = () => {
     if (!refForm.title) return
-    const ref: Reference = {
-      id: generateId(),
-      title: refForm.title,
-      author: refForm.author,
-      year: refForm.year ? parseInt(refForm.year) : undefined,
-      notes: refForm.notes,
+    if (editingRef) {
+      updateThesis({
+        references: thesis.references.map((r) =>
+          r.id === editingRef.id
+            ? { ...r, title: refForm.title, author: refForm.author, year: refForm.year ? parseInt(refForm.year) : undefined, notes: refForm.notes }
+            : r
+        ),
+      })
+    } else {
+      const ref: Reference = {
+        id: generateId(),
+        title: refForm.title,
+        author: refForm.author,
+        year: refForm.year ? parseInt(refForm.year) : undefined,
+        notes: refForm.notes,
+      }
+      updateThesis({ references: [...thesis.references, ref] })
     }
-    updateThesis({ references: [...thesis.references, ref] })
     setRefForm({ title: '', author: '', year: '', notes: '' })
     setShowRefModal(false)
   }
@@ -41,14 +69,35 @@ export default function ThesisPage() {
     updateThesis({ references: thesis.references.filter((r) => r.id !== id) })
   }
 
-  const addComment = () => {
+  // --- Comments ---
+  const openAddCommentModal = () => {
+    setEditingComment(null)
+    setCommentForm({ content: '', date: new Date().toISOString().slice(0, 10) })
+    setShowCommentModal(true)
+  }
+
+  const openEditCommentModal = (c: TeacherComment) => {
+    setEditingComment(c)
+    setCommentForm({ content: c.content, date: c.date })
+    setShowCommentModal(true)
+  }
+
+  const saveComment = () => {
     if (!commentForm.content) return
-    const comment: TeacherComment = {
-      id: generateId(),
-      content: commentForm.content,
-      date: commentForm.date,
+    if (editingComment) {
+      updateThesis({
+        teacherComments: thesis.teacherComments.map((c) =>
+          c.id === editingComment.id ? { ...c, content: commentForm.content, date: commentForm.date } : c
+        ),
+      })
+    } else {
+      const comment: TeacherComment = {
+        id: generateId(),
+        content: commentForm.content,
+        date: commentForm.date,
+      }
+      updateThesis({ teacherComments: [...thesis.teacherComments, comment] })
     }
-    updateThesis({ teacherComments: [...thesis.teacherComments, comment] })
     setCommentForm({ content: '', date: new Date().toISOString().slice(0, 10) })
     setShowCommentModal(false)
   }
@@ -57,6 +106,7 @@ export default function ThesisPage() {
     updateThesis({ teacherComments: thesis.teacherComments.filter((c) => c.id !== id) })
   }
 
+  // --- Drafts ---
   const addDraft = () => {
     if (!draftForm.title) return
     const draft: Draft = {
@@ -82,25 +132,60 @@ export default function ThesisPage() {
     })
   }
 
+  // --- Next actions ---
   const addNextAction = () => {
     if (!newAction.trim()) return
     updateThesis({ nextActions: [...thesis.nextActions, newAction.trim()] })
     setNewAction('')
   }
 
+  const startEditAction = (i: number) => {
+    setEditingActionIndex(i)
+    setEditingActionValue(thesis.nextActions[i])
+  }
+
+  const saveEditAction = (i: number) => {
+    if (!editingActionValue.trim()) return
+    const updated = [...thesis.nextActions]
+    updated[i] = editingActionValue.trim()
+    updateThesis({ nextActions: updated })
+    setEditingActionIndex(null)
+  }
+
   const removeNextAction = (i: number) => {
     updateThesis({ nextActions: thesis.nextActions.filter((_, idx) => idx !== i) })
   }
 
-  const addTimetableItem = () => {
+  // --- Timetable ---
+  const openAddTimetableModal = () => {
+    setEditingTimetable(null)
+    setTimetableForm({ period: '', task: '' })
+    setShowTimetableModal(true)
+  }
+
+  const openEditTimetableModal = (item: TimetableItem) => {
+    setEditingTimetable(item)
+    setTimetableForm({ period: item.period, task: item.task })
+    setShowTimetableModal(true)
+  }
+
+  const saveTimetableItem = () => {
     if (!timetableForm.period.trim() || !timetableForm.task.trim()) return
-    const item: TimetableItem = {
-      id: generateId(),
-      period: timetableForm.period.trim(),
-      task: timetableForm.task.trim(),
-      done: false,
+    if (editingTimetable) {
+      updateThesis({
+        timetable: (thesis.timetable ?? []).map((t) =>
+          t.id === editingTimetable.id ? { ...t, period: timetableForm.period.trim(), task: timetableForm.task.trim() } : t
+        ),
+      })
+    } else {
+      const item: TimetableItem = {
+        id: generateId(),
+        period: timetableForm.period.trim(),
+        task: timetableForm.task.trim(),
+        done: false,
+      }
+      updateThesis({ timetable: [...(thesis.timetable ?? []), item] })
     }
-    updateThesis({ timetable: [...(thesis.timetable ?? []), item] })
     setTimetableForm({ period: '', task: '' })
     setShowTimetableModal(false)
   }
@@ -127,7 +212,6 @@ export default function ThesisPage() {
       <div className="grid grid-cols-2 gap-5">
         {/* Left column */}
         <div className="space-y-5">
-          {/* Theme */}
           <Card>
             <CardHeader title="テーマ" accent />
             <CardBody>
@@ -139,7 +223,6 @@ export default function ThesisPage() {
             </CardBody>
           </Card>
 
-          {/* Problem awareness */}
           <Card>
             <CardHeader title="問題意識" accent />
             <CardBody>
@@ -152,7 +235,6 @@ export default function ThesisPage() {
             </CardBody>
           </Card>
 
-          {/* Hypothesis */}
           <Card>
             <CardHeader title="仮説" accent />
             <CardBody>
@@ -165,7 +247,6 @@ export default function ThesisPage() {
             </CardBody>
           </Card>
 
-          {/* Structure */}
           <Card>
             <CardHeader title="構成案" accent />
             <CardBody>
@@ -186,7 +267,7 @@ export default function ThesisPage() {
               accent
               action={
                 <button
-                  onClick={() => setShowTimetableModal(true)}
+                  onClick={openAddTimetableModal}
                   className="px-2.5 py-1 bg-slate-800 text-white text-xs hover:bg-slate-700 transition-colors"
                 >
                   + 追加
@@ -226,7 +307,13 @@ export default function ThesisPage() {
                         <td className={`px-4 py-2.5 text-slate-700 ${item.done ? 'line-through text-slate-400' : ''}`}>
                           {item.task}
                         </td>
-                        <td className="px-3 py-2.5">
+                        <td className="px-3 py-2.5 flex gap-2">
+                          <button
+                            onClick={() => openEditTimetableModal(item)}
+                            className="text-slate-300 hover:text-slate-600 text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            編集
+                          </button>
                           <button
                             onClick={() => deleteTimetableItem(item.id)}
                             className="text-slate-300 hover:text-red-500 text-xs opacity-0 group-hover:opacity-100 transition-opacity"
@@ -256,13 +343,36 @@ export default function ThesisPage() {
                 {thesis.nextActions.map((a, i) => (
                   <div key={i} className="flex items-center gap-2 group">
                     <span className="w-1.5 h-1.5 rounded-full bg-amber-500 flex-shrink-0" />
-                    <span className="text-sm text-slate-700 flex-1">{a}</span>
-                    <button
-                      onClick={() => removeNextAction(i)}
-                      className="text-slate-300 hover:text-red-500 text-xs opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      削除
-                    </button>
+                    {editingActionIndex === i ? (
+                      <input
+                        autoFocus
+                        type="text"
+                        value={editingActionValue}
+                        onChange={(e) => setEditingActionValue(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') saveEditAction(i)
+                          if (e.key === 'Escape') setEditingActionIndex(null)
+                        }}
+                        onBlur={() => saveEditAction(i)}
+                        className="flex-1 border border-amber-400 px-2 py-0.5 text-sm text-slate-700 focus:outline-none"
+                      />
+                    ) : (
+                      <>
+                        <span className="text-sm text-slate-700 flex-1">{a}</span>
+                        <button
+                          onClick={() => startEditAction(i)}
+                          className="text-slate-300 hover:text-slate-600 text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          編集
+                        </button>
+                        <button
+                          onClick={() => removeNextAction(i)}
+                          className="text-slate-300 hover:text-red-500 text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          削除
+                        </button>
+                      </>
+                    )}
                   </div>
                 ))}
               </div>
@@ -293,7 +403,7 @@ export default function ThesisPage() {
               accent
               action={
                 <button
-                  onClick={() => setShowRefModal(true)}
+                  onClick={openAddRefModal}
                   className="px-2.5 py-1 bg-slate-800 text-white text-xs hover:bg-slate-700 transition-colors"
                 >
                   + 追加
@@ -323,12 +433,20 @@ export default function ThesisPage() {
                         <td className="px-3 py-2.5 text-xs text-slate-500 whitespace-nowrap">{r.author}</td>
                         <td className="px-3 py-2.5 text-xs text-slate-500 whitespace-nowrap">{r.year}</td>
                         <td className="px-3 py-2.5">
-                          <button
-                            onClick={() => deleteReference(r.id)}
-                            className="text-slate-300 hover:text-red-500 text-xs opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            削除
-                          </button>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => openEditRefModal(r)}
+                              className="text-slate-300 hover:text-slate-600 text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              編集
+                            </button>
+                            <button
+                              onClick={() => deleteReference(r.id)}
+                              className="text-slate-300 hover:text-red-500 text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              削除
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -345,7 +463,7 @@ export default function ThesisPage() {
               accent
               action={
                 <button
-                  onClick={() => setShowCommentModal(true)}
+                  onClick={openAddCommentModal}
                   className="px-2.5 py-1 bg-slate-800 text-white text-xs hover:bg-slate-700 transition-colors"
                 >
                   + 追加
@@ -361,12 +479,20 @@ export default function ThesisPage() {
                     <div key={c.id} className="px-5 py-3 border-b border-slate-100 last:border-0 group hover:bg-slate-50">
                       <div className="flex items-center justify-between mb-1">
                         <span className="text-xs text-slate-400">{c.date}</span>
-                        <button
-                          onClick={() => deleteComment(c.id)}
-                          className="text-slate-300 hover:text-red-500 text-xs opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          削除
-                        </button>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => openEditCommentModal(c)}
+                            className="text-slate-300 hover:text-slate-600 text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            編集
+                          </button>
+                          <button
+                            onClick={() => deleteComment(c.id)}
+                            className="text-slate-300 hover:text-red-500 text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            削除
+                          </button>
+                        </div>
                       </div>
                       <p className="text-sm text-slate-700 whitespace-pre-wrap">{c.content}</p>
                     </div>
@@ -420,7 +546,7 @@ export default function ThesisPage() {
       </div>
 
       {/* Reference modal */}
-      <Modal isOpen={showRefModal} onClose={() => setShowRefModal(false)} title="文献を追加">
+      <Modal isOpen={showRefModal} onClose={() => setShowRefModal(false)} title={editingRef ? '文献を編集' : '文献を追加'}>
         <div className="space-y-3">
           <div>
             <label className="block text-xs font-semibold text-slate-600 mb-1">タイトル *</label>
@@ -461,24 +587,18 @@ export default function ThesisPage() {
             />
           </div>
           <div className="flex justify-end gap-2 pt-2">
-            <button
-              onClick={() => setShowRefModal(false)}
-              className="px-4 py-1.5 text-sm text-slate-500 border border-slate-200 hover:bg-slate-50"
-            >
+            <button onClick={() => setShowRefModal(false)} className="px-4 py-1.5 text-sm text-slate-500 border border-slate-200 hover:bg-slate-50">
               キャンセル
             </button>
-            <button
-              onClick={addReference}
-              className="px-4 py-1.5 text-sm bg-slate-800 text-white hover:bg-slate-700"
-            >
-              追加
+            <button onClick={saveReference} className="px-4 py-1.5 text-sm bg-slate-800 text-white hover:bg-slate-700">
+              {editingRef ? '保存' : '追加'}
             </button>
           </div>
         </div>
       </Modal>
 
       {/* Comment modal */}
-      <Modal isOpen={showCommentModal} onClose={() => setShowCommentModal(false)} title="コメントを追加">
+      <Modal isOpen={showCommentModal} onClose={() => setShowCommentModal(false)} title={editingComment ? 'コメントを編集' : 'コメントを追加'}>
         <div className="space-y-3">
           <div>
             <label className="block text-xs font-semibold text-slate-600 mb-1">日付</label>
@@ -499,17 +619,11 @@ export default function ThesisPage() {
             />
           </div>
           <div className="flex justify-end gap-2 pt-2">
-            <button
-              onClick={() => setShowCommentModal(false)}
-              className="px-4 py-1.5 text-sm text-slate-500 border border-slate-200 hover:bg-slate-50"
-            >
+            <button onClick={() => setShowCommentModal(false)} className="px-4 py-1.5 text-sm text-slate-500 border border-slate-200 hover:bg-slate-50">
               キャンセル
             </button>
-            <button
-              onClick={addComment}
-              className="px-4 py-1.5 text-sm bg-slate-800 text-white hover:bg-slate-700"
-            >
-              追加
+            <button onClick={saveComment} className="px-4 py-1.5 text-sm bg-slate-800 text-white hover:bg-slate-700">
+              {editingComment ? '保存' : '追加'}
             </button>
           </div>
         </div>
@@ -537,16 +651,10 @@ export default function ThesisPage() {
             />
           </div>
           <div className="flex justify-end gap-2 pt-2">
-            <button
-              onClick={() => setShowDraftModal(false)}
-              className="px-4 py-1.5 text-sm text-slate-500 border border-slate-200 hover:bg-slate-50"
-            >
+            <button onClick={() => setShowDraftModal(false)} className="px-4 py-1.5 text-sm text-slate-500 border border-slate-200 hover:bg-slate-50">
               キャンセル
             </button>
-            <button
-              onClick={addDraft}
-              className="px-4 py-1.5 text-sm bg-slate-800 text-white hover:bg-slate-700"
-            >
+            <button onClick={addDraft} className="px-4 py-1.5 text-sm bg-slate-800 text-white hover:bg-slate-700">
               追加
             </button>
           </div>
@@ -554,7 +662,7 @@ export default function ThesisPage() {
       </Modal>
 
       {/* Timetable modal */}
-      <Modal isOpen={showTimetableModal} onClose={() => setShowTimetableModal(false)} title="スケジュールを追加" size="sm">
+      <Modal isOpen={showTimetableModal} onClose={() => setShowTimetableModal(false)} title={editingTimetable ? 'スケジュールを編集' : 'スケジュールを追加'} size="sm">
         <div className="space-y-3">
           <div>
             <label className="block text-xs font-semibold text-slate-600 mb-1">期間 *</label>
@@ -572,23 +680,17 @@ export default function ThesisPage() {
               type="text"
               value={timetableForm.task}
               onChange={(e) => setTimetableForm({ ...timetableForm, task: e.target.value })}
-              onKeyDown={(e) => { if (e.key === 'Enter') addTimetableItem() }}
+              onKeyDown={(e) => { if (e.key === 'Enter') saveTimetableItem() }}
               placeholder="例：第1章執筆、先行研究調査"
               className="w-full border border-slate-200 px-3 py-1.5 text-sm focus:outline-none focus:border-amber-400"
             />
           </div>
           <div className="flex justify-end gap-2 pt-2">
-            <button
-              onClick={() => setShowTimetableModal(false)}
-              className="px-4 py-1.5 text-sm text-slate-500 border border-slate-200 hover:bg-slate-50"
-            >
+            <button onClick={() => setShowTimetableModal(false)} className="px-4 py-1.5 text-sm text-slate-500 border border-slate-200 hover:bg-slate-50">
               キャンセル
             </button>
-            <button
-              onClick={addTimetableItem}
-              className="px-4 py-1.5 text-sm bg-slate-800 text-white hover:bg-slate-700"
-            >
-              追加
+            <button onClick={saveTimetableItem} className="px-4 py-1.5 text-sm bg-slate-800 text-white hover:bg-slate-700">
+              {editingTimetable ? '保存' : '追加'}
             </button>
           </div>
         </div>
