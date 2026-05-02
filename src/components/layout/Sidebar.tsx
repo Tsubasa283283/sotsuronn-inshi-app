@@ -43,6 +43,11 @@ const navItems = [
     href: '/report',
     icon: '📄',
   },
+  {
+    label: '研究計画書ビルダー',
+    href: '/plan',
+    icon: '📋',
+  },
 ]
 
 export default function Sidebar() {

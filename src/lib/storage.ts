@@ -25,6 +25,7 @@ function mergeState(parsed: AppState): AppState {
       chiba_shoka: { ...INITIAL_STATE.schools.chiba_shoka, ...parsed.schools?.chiba_shoka },
     },
     materials: parsed.materials ?? [],
+    researchPlan: { ...INITIAL_STATE.researchPlan, ...parsed.researchPlan },
   }
 }
 

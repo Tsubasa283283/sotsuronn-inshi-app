@@ -117,4 +117,17 @@ export const INITIAL_STATE: AppState = {
     },
   },
   materials: [],
+  researchPlan: {
+    provisionalTitle: '',
+    background: '',
+    problemAwareness: '',
+    literatureReview: '',
+    researchGap: '',
+    researchQuestion: '',
+    purpose: '',
+    methodology: '',
+    expectedConclusion: '',
+    references: '',
+    schoolAdjustment: '',
+  },
 }

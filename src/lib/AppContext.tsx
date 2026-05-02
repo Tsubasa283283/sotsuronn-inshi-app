@@ -8,7 +8,7 @@ import {
   useEffect,
   type ReactNode,
 } from 'react'
-import type { AppState, Thesis, ExamPrep, SchoolData, SchoolId, CommonMaterial } from './types'
+import type { AppState, Thesis, ExamPrep, SchoolData, SchoolId, CommonMaterial, ResearchPlan } from './types'
 import { loadState, saveState, saveSnapshot } from './storage'
 
 interface AppContextValue {
@@ -19,6 +19,7 @@ interface AppContextValue {
   addMaterial: (m: CommonMaterial) => void
   updateMaterial: (m: CommonMaterial) => void
   deleteMaterial: (id: string) => void
+  updateResearchPlan: (patch: Partial<ResearchPlan>) => void
 }
 
 const AppContext = createContext<AppContextValue | null>(null)
@@ -75,6 +76,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setState((s) => ({ ...s, materials: s.materials.filter((x) => x.id !== id) }))
   }, [])
 
+  const updateResearchPlan = useCallback((patch: Partial<ResearchPlan>) => {
+    setState((s) => ({ ...s, researchPlan: { ...s.researchPlan, ...patch } }))
+  }, [])
+
   return (
     <AppContext.Provider
       value={{
@@ -85,6 +90,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         addMaterial,
         updateMaterial,
         deleteMaterial,
+        updateResearchPlan,
       }}
     >
       {children}

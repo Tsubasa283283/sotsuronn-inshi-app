@@ -120,9 +120,24 @@ export interface ExamPrep {
   tasks: Task[]
 }
 
+export interface ResearchPlan {
+  provisionalTitle: string
+  background: string
+  problemAwareness: string
+  literatureReview: string
+  researchGap: string
+  researchQuestion: string
+  purpose: string
+  methodology: string
+  expectedConclusion: string
+  references: string
+  schoolAdjustment: string
+}
+
 export interface AppState {
   thesis: Thesis
   examPrep: ExamPrep
   schools: Record<SchoolId, SchoolData>
   materials: CommonMaterial[]
+  researchPlan: ResearchPlan
 }
